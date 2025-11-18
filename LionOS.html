@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Lion OS</title>
+<style>
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:Segoe UI, sans-serif; }/* Загрузочный экран */
+#bootScreen {
+    position:absolute; inset:0; background:black; color:white;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    animation:fadeOut 1s linear 10s forwards;
+}
+@keyframes fadeOut { to { opacity:0; visibility:hidden; } }
+
+#bootLogo { font-size:48px; margin-bottom:20px; }
+
+/* Полоска загрузки как Windows 11 */
+.loader {
+    width:80px; height:4px; background:#333; border-radius:4px;
+    overflow:hidden; position:relative;
+}
+.loader::before {
+    content:""; position:absolute; left:-40px; top:0;
+    width:40px; height:4px; background:white;
+    animation:loadAnim 1s infinite;
+}
+@keyframes loadAnim { 0%{left:-40px;} 100%{left:80px;} }
+
+/* Экран входа */
+#loginScreen {
+    position:absolute; inset:0; background:#101015;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:white; opacity:0; animation:loginFade 0.1s linear 11s forwards;
+}
+@keyframes loginFade { to {opacity:1;} }
+
+#desktop {
+    position:absolute; inset:0; background-size:cover;
+    background-position:center; display:none;
+}
+
+/* Панель задач */
+#taskbar {
+    position:absolute; bottom:0; left:0; width:100%; height:50px;
+    backdrop-filter:blur(10px); background:rgba(20,20,20,0.6);
+    display:flex; align-items:center; justify-content:center;
+}
+
+#startBtn {
+    width:40px;
+    height:40px;
+    background:url('https://img.icons8.com/?size=512&id=59817&format=png') center/contain no-repeat;
+    border:none;
+    cursor:pointer;
+    filter:invert(62%) sepia(83%) saturate(500%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+/* Меню Пуск */
+#startMenu {
+    position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+    width:250px; background:#1e1e1e; border-radius:10px; padding:15px;
+    display:none;
+}
+
+/* Окна */
+.window {
+    position:absolute; top:100px; left:100px;
+    width:400px; height:300px; background:white; border-radius:10px;
+    display:none; flex-direction:column;
+}
+
+.titlebar {
+    height:30px; background:#202020; color:white; display:flex;
+    align-items:center; padding:0 10px; cursor:move;
+}
+
+/* Настройки */
+#settingsContent select, #settingsContent button, #settingsContent input {
+    width:100%; margin-top:10px; padding:5px;
+}
+
+</style>
+</head>
+<body><!-- Загрузочный экран --><div id="bootScreen">
+    <div id="bootLogo">Lion OS</div>
+    <div class="loader"></div>
+</div><!-- Экран входа --><div id="loginScreen">
+    <h2>Вход в систему</h2>
+    <input id="login" placeholder="Логин" /><br>
+    <input id="password" type="password" placeholder="Пароль" /><br>
+    <button onclick="login()">Войти</button>
+</div><!-- Рабочий стол --><div id="desktop">
+    <div id="taskbar">
+        <button id="startBtn" onclick="toggleStart()"></button>
+    </div><div id="startMenu">
+    <button onclick="openStore()">🛍 Магазин</button>
+    <button onclick="openSettings()">⚙ Настройки</button>
+    <button onclick="openChat()">💬 ChatBot</button>
+    <button onclick="location.reload()">🔄 Перезагрузка</button>
+</div>
+
+<div id="settingsWindow" class="window">
+    <div class="titlebar">Настройки <button class="closeBtn" onclick="this.parentElement.parentElement.style.display='none'">✖</button></div>
+    <div id="settingsContent" style="padding:10px;">
+        <h3>Разделы</h3>
+        <button onclick="openWallpaperSettings()">Обои</button>
+        <button onclick="openStartSettings()">Пуск</button>
+
+        <div id="wallpaperSettings" style="display:none; margin-top:10px;">
+            <h3>Обои Windows 11</h3>
+            <select id="wallSelect">
+                <option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Light/img0.jpg'>Windows 11 — Светлые волны</option>
+                <option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Dark/img19.jpg'>Windows 11 — Тёмные волны</option>
+                <option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Light/img13.jpg'>Windows 11 — Цветы</option>
+                <option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Light/img3.jpg'>Windows 11 — Градиент</option>
+                <option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Dark/img12.jpg'>Windows 11 — Абстракция</option>
+            </select>
+            <button onclick="applyWallpaper()">Применить</button>
+        </div>
+
+        <div id="startSettings" style="display:none; margin-top:10px;">
+            <h3>Положение кнопки Пуск</h3>
+            <select id="startPos" onchange="updateStartPos()">
+                <option value="center">По центру</option>
+                <option value="left">Слева</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Магазин приложений -->
+<div id="storeWindow" class="window">
+    <div class="titlebar">Магазин приложений</div>
+    <div style="padding:10px; height:260px; overflow:auto;">
+        <h3>Доступные приложения</h3>
+        <div id="appList">
+            <div style='margin-bottom:10px;'>
+                <b>Lion Browser</b><br>
+                <button onclick="installApp('Lion Browser')">Установить</button>
+                <div id="prog-Lion Browser" style='width:100%; height:6px; background:#ddd; border-radius:3px; margin-top:5px; display:none;'>
+                    <div style='height:100%; width:0%; background:#4caf50; border-radius:3px;' class='bar'></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="chatWindow" class="window">
+    <div class="titlebar">ChatBot <button class="closeBtn" onclick="this.parentElement.parentElement.style.display='none'">✖</button></div>
+    <div style="padding:10px;">
+        <div id="chatLog" style="height:200px; overflow:auto; border:1px solid #ccc; padding:5px;"></div>
+        <input id="chatInput" style="width:100%;" placeholder="Введите сообщение" onkeydown="if(event.key==='Enter')sendMsg()">
+    </div>
+</div>
+
+</div><script>
+// Логин
+function login(){
+    if(document.getElementById('login').value === 'Levc920' &&
+       document.getElementById('password').value === '2584201725Levc'){
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('desktop').style.display='block';
+    } else alert('Неверный пароль');
+}
+
+// Меню Пуск
+function toggleStart(){
+    let m=document.getElementById('startMenu');
+    m.style.display = m.style.display==='block' ? 'none':'block';
+}
+
+// Настройки
+function openSettings(){ document.getElementById('settingsWindow').style.display='flex'; }
+function openChat(){ document.getElementById('chatWindow').style.display='flex'; }
+function openWallpaperSettings(){
+    document.getElementById('wallpaperSettings').style.display='block';
+    document.getElementById('startSettings').style.display='none';
+}
+function openStartSettings(){
+    document.getElementById('wallpaperSettings').style.display='none';
+    document.getElementById('startSettings').style.display='block';
+}
+
+// Применить обои
+function applyWallpaper(){
+    let url=document.getElementById('wallSelect').value;
+    document.getElementById('desktop').style.backgroundImage=`url(${url})`;
+}
+
+// Позиция Пуска
+function updateStartPos(){
+    let pos=document.getElementById('startPos').value;
+    let bar=document.getElementById('taskbar');
+    bar.style.justifyContent = pos==='center' ? 'center' : 'flex-start';
+}
+
+// ChatBot
+function sendMsg(){
+    let log=document.getElementById('chatLog');
+    let msg=document.getElementById('chatInput').value;
+    log.innerHTML += `<div><b>Вы:</b> ${msg}</div>`;
+
+    let reply="";
+    if(msg.toLowerCase().includes("ос")) reply="Lion OS — это оптимизированная современная веб‑операционная система со стилем Windows 11.";
+    else reply="Я вас понял!";
+
+    log.innerHTML += `<div><b>Bot:</b> ${reply}</div>`;
+    document.getElementById('chatInput').value="";
+}
+// Магазин
+function openStore(){ document.getElementById('storeWindow').style.display='flex'; }
+
+function installApp(name){
+    let box=document.getElementById('prog-'+name);
+    let bar=box.querySelector('.bar');
+    box.style.display='block';
+    let p=0;
+    let timer=setInterval(()=>{
+        p+=5;
+        bar.style.width=p+'%';
+        if(p>=100){ clearInterval(timer); alert(name+' установлено!'); }
+    },200);
+}
+
+// Drag windows
+const windows=document.querySelectorAll('.window');
+windows.forEach(w=>{
+  const bar=w.querySelector('.titlebar');
+  let offsetX,offsetY,isDown=false;
+  bar.onmousedown=e=>{isDown=true;offsetX=e.clientX-w.offsetLeft;offsetY=e.clientY-w.offsetTop;};
+  document.onmouseup=()=>isDown=false;
+  document.onmousemove=e=>{if(!isDown)return; w.style.left=e.clientX-offsetX+'px'; w.style.top=e.clientY-offsetY+'px';};
+});
+</script></body>
+</html>
