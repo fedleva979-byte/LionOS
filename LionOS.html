@@ -1,100 +1,669 @@
-<!DOCTYPE html><html lang="ru">
+<!doctype html>
+<html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<title>Lion OS</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lion OS — Feature Update</title>
 <style>
-body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:Segoe UI, sans-serif; }
-#bootScreen { position:absolute; inset:0; background:black; color:white; display:flex; flex-direction:column; align-items:center; justify-content:center; animation:fadeOut 1s linear 10s forwards; }
-@keyframes fadeOut { to { opacity:0; visibility:hidden; } }
-#bootLogo { font-size:48px; margin-bottom:20px; }
-.loader { width:80px; height:4px; background:#333; border-radius:4px; overflow:hidden; position:relative; }
-.loader::before { content:""; position:absolute; left:-40px; top:0; width:40px; height:4px; background:white; animation:loadAnim 1s infinite; }
-@keyframes loadAnim { 0%{left:-40px;} 100%{left:80px;} }
-#loginScreen { position:absolute; inset:0; background:#101015; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; opacity:0; animation:loginFade 0.1s linear 11s forwards; }
-@keyframes loginFade { to {opacity:1;} }
-#desktop { position:absolute; inset:0; background-size:cover; background-position:center; display:none; }
-#taskbar { position:absolute; bottom:0; left:0; width:100%; height:50px; backdrop-filter:blur(10px); background:rgba(20,20,20,0.6); display:flex; align-items:center; justify-content:center; }
-#startBtn { width:40px; height:40px; background:url('https://img.icons8.com/?size=512&id=59817&format=png') center/contain no-repeat; border:none; cursor:pointer; filter:invert(62%) sepia(83%) saturate(500%) hue-rotate(180deg) brightness(95%) contrast(90%); }
-#startMenu { position:absolute; bottom:60px; left:50%; transform:translateX(-50%); width:250px; background:#1e1e1e; border-radius:10px; padding:15px; display:none; }
-.window { position:absolute; top:100px; left:100px; width:400px; height:300px; background:white; border-radius:10px; display:none; flex-direction:column; }
-.titlebar { height:30px; background:#202020; color:white; display:flex; align-items:center; padding:0 10px; cursor:move; }
-.closeBtn{margin-left:auto; background:none; border:none; color:white; font-size:16px; cursor:pointer;}
-#settingsContent select, #settingsContent button, #settingsContent input { width:100%; margin-top:10px; padding:5px; }
-.desktopIcon { width:60px; text-align:center; margin:5px; display:inline-block; cursor:pointer; color:white; }
-.desktopIcon img { width:48px; height:48px; }
+:root{
+  --bg-dark:#071028;
+  --panel:#0a1a3a;
+  --accent:#00bfff;
+  --text:#fff;
+  --muted:rgba(255,255,255,0.7);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#0b1220;color:var(--text);overflow:hidden}
+
+/* Splash */
+#splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;z-index:2000}
+#splash h1{margin:0;font-size:44px}
+#progressWrap{width:60%;max-width:720px;margin-top:18px}
+#progressBar{height:12px;background:#111;border-radius:8px;overflow:hidden}
+#progressFill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#7fefff)}
+
+/* Lock screen */
+#lockScreen{position:fixed;inset:0;background:linear-gradient(180deg,#071028,#021018);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:3000;color:var(--text)}
+#lockScreen h2{font-size:32px;margin:0 0 8px}
+
+/* Login */
+#login{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1500}
+#loginBox{background:linear-gradient(180deg,#0c2742,#071a2e);padding:22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6);width:320px;text-align:center}
+#loginBox input{width:100%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:var(--text)}
+
+/* Desktop */
+#desktop{display:none;position:relative;width:100%;height:100%;background-size:cover;background-position:center;}
+
+/* Icons grid (draggable) */
+#desktopIcons{position:absolute;top:20px;left:20px;display:flex;flex-wrap:wrap;gap:10px;z-index:10}
+.desktopIcon{width:80px;text-align:center;color:var(--text);cursor:pointer;user-select:none}
+.desktopIcon img{width:56px;height:56px;border-radius:10px;display:block;margin:0 auto 6px;box-shadow:0 8px 16px rgba(0,0,0,0.5)}
+
+/* Widgets */
+#widgets{position:absolute;top:20px;right:20px;display:flex;flex-direction:column;gap:12px;z-index:12}
+.widget{background:rgba(255,255,255,0.04);padding:12px;border-radius:12px;color:var(--text);width:200px;backdrop-filter:blur(6px)}
+
+/* Taskbar */
+#taskbar{position:fixed;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;justify-content:center;background:rgba(6,10,18,0.75);backdrop-filter:blur(6px);z-index:50}
+#taskbar-inner{display:flex;align-items:center;gap:12px}
+#startBtn{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.06);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#startBtn svg{width:26px;height:26px;fill:var(--accent)}
+#pinnedApps{display:flex;gap:8px;align-items:center}
+
+/* Start Menu */
+#startMenu{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(10px);width:320px;background:var(--panel);border-radius:14px;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,0.6);opacity:0;pointer-events:none;transition:transform .18s,opacity .18s}
+#startMenu.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.startItem{padding:10px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg,rgba(0,0,0,0.04),transparent);cursor:pointer}
+
+/* Windows */
+.window{position:absolute;top:100px;left:120px;width:700px;background:#fff;color:#111;border-radius:10px;box-shadow:0 30px 60px rgba(0,0,0,0.45);overflow:hidden;display:flex;flex-direction:column;z-index:100}
+.win-header{background:linear-gradient(90deg,var(--panel),#071a2e);color:#fff;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;cursor:move}
+.win-controls{display:flex;gap:8px}
+.win-controls button{background:transparent;border:none;color:#fff;padding:6px;border-radius:6px;cursor:pointer}
+.win-body{padding:12px;background:#fff;color:#000;max-height:60vh;overflow:auto}
+
+/* minimized items area (taskbar small icons) */
+#minimizedBar{position:fixed;bottom:74px;left:12px;display:flex;gap:6px;z-index:60}
+
+/* Notifications */
+#notifications{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:2500}
+.notification{background:var(--panel);padding:10px 12px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.5);color:var(--text);min-width:200px;opacity:0;transform:translateY(6px);transition:opacity .22s,transform .22s}
+
+/* Themes */
+body.light{background:#e9eef5;color:#071028}
+body.light .win-header{background:linear-gradient(90deg,#dfeffd,#bfd6ea);color:#071028}
+body.light .notification{background:#e0f0ff;color:#071028}
+
+/* Small */
+@media(max-width:800px){ .window{width:92vw} #startMenu{width:90vw} }
 </style>
 </head>
-<body><div id="bootScreen"><div id="bootLogo">Lion OS</div><div class="loader"></div></div>
-<div id="loginScreen">
-<h2>Вход в систему</h2>
-<input id="login" placeholder="Логин" /><br>
-<input id="password" type="password" placeholder="Пароль" /><br>
-<button onclick="login()">Войти</button>
+<body>
+
+<!-- Splash -->
+<div id="splash" role="dialog" aria-hidden="false">
+  <h1>Lion OS</h1>
+  <div id="progressWrap"><div id="progressBar"><div id="progressFill"></div></div></div>
 </div>
-<div id="desktop">
-<div id="taskbar"><button id="startBtn" onclick="toggleStart()"></button></div>
-<div id="startMenu">
-<button onclick="openStore()">🛍 Магазин</button>
-<button onclick="openSettings()">⚙ Настройки</button>
-<button onclick="openChat()">💬 ChatBot</button>
-<button onclick="location.reload()">🔄 Перезагрузка</button>
+
+<!-- Lock screen -->
+<div id="lockScreen" style="display:none;align-items:center;justify-content:center;flex-direction:column;">
+  <h2>Экран заблокирован</h2>
+  <div style="margin:8px;color:var(--muted)">Нажмите Enter и введите пароль</div>
+  <input id="unlockInput" placeholder="Пароль" type="password" style="padding:8px;border-radius:6px;border:none;outline:none"/>
+  <div style="margin-top:10px;color:var(--muted);font-size:13px">Логин: <b>Levc920</b> Пароль: <b>2584201725Levc</b></div>
 </div>
-<div id="desktopIcons"></div><div id="settingsWindow" class="window">
-<div class="titlebar">Настройки <button class="closeBtn" onclick="this.parentElement.parentElement.style.display='none'">✖</button></div>
-<div id="settingsContent" style="padding:10px;">
-<h3>Разделы</h3>
-<button onclick="openWallpaperSettings()">Обои</button>
-<button onclick="openStartSettings()">Пуск</button>
-<div id="wallpaperSettings" style="display:none; margin-top:10px;">
-<h3>Обои Windows 11</h3>
-<select id="wallSelect">
-<option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Light/img0.jpg'>Windows 11 — Светлые волны</option>
-<option value='https://raw.githubusercontent.com/solstice23/windows-11-wallpapers/main/Dark/img19.jpg'>Windows 11 — Тёмные волны</option>
-</select>
-<button onclick="applyWallpaper()">Применить</button>
+
+<!-- Login -->
+<div id="login" style="display:none;align-items:center;justify-content:center;">
+  <div id="loginBox">
+    <h2>Вход в Lion OS</h2>
+    <input id="loginUser" placeholder="Логин" autocomplete="username"/><br/>
+    <input id="loginPass" placeholder="Пароль" type="password" autocomplete="current-password"/><br/>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+      <button id="loginBtn">Войти</button>
+      <button id="loginDemo">Тест</button>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted)">Логин: <b>Levc920</b> Пароль: <b>2584201725Levc</b></div>
+  </div>
 </div>
-<div id="startSettings" style="display:none; margin-top:10px;">
-<h3>Положение кнопки Пуск</h3>
-<select id="startPos" onchange="updateStartPos()">
-<option value="center">По центру</option>
-<option value="left">Слева</option>
-</select>
+
+<!-- Desktop -->
+<div id="desktop" aria-hidden="true">
+  <div id="desktopIcons"></div>
+
+  <!-- Widgets -->
+  <div id="widgets">
+    <div class="widget" id="clockWidget">
+      <div style="font-size:20px" id="clockTime">--:--</div>
+      <div style="font-size:12px;color:var(--muted)" id="clockDate">—</div>
+    </div>
+
+    <div class="widget" id="weatherWidget">
+      <div style="font-weight:600">Погода (демо)</div>
+      <div id="weatherText" style="color:var(--muted)">Погода недоступна. Можно подключить API.</div>
+    </div>
+  </div>
+
+  <!-- minimized area -->
+  <div id="minimizedBar"></div>
+
+  <!-- taskbar -->
+  <div id="taskbar">
+    <div id="taskbar-inner">
+      <button id="startBtn" title="Пуск" aria-haspopup="true" aria-controls="startMenu" aria-expanded="false">
+        <!-- 4-square icon (SVG) -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>
+      </button>
+      <div id="pinnedApps"></div>
+    </div>
+  </div>
+
+  <!-- Start menu -->
+  <div id="startMenu" role="menu" aria-hidden="true">
+    <div class="startItem" onclick="openApp('notepad')">📝 Блокнот</div>
+    <div class="startItem" onclick="openApp('browser')">🌐 Lion Browser</div>
+    <div class="startItem" onclick="openApp('explorer')">📁 Проводник</div>
+    <div class="startItem" onclick="openApp('store')">🏬 Магазин</div>
+    <div class="startItem" onclick="openApp('terminal')">⌨️ Терминал</div>
+    <div class="startItem" onclick="openApp('settings')">⚙️ Настройки</div>
+    <div class="startItem" onclick="lockScreen()">🔒 Заблокировать</div>
+  </div>
+
+  <!-- Notifications container -->
+  <div id="notifications"></div>
 </div>
-</div>
-</div><div id="storeWindow" class="window">
-<div class="titlebar">Магазин приложений <button class="closeBtn" onclick="this.parentElement.parentElement.style.display='none'">✖</button></div>
-<div style="padding:10px; height:260px; overflow:auto;">
-<h3>Доступные приложения</h3>
-<div id="appList">
-<div style='margin-bottom:10px;'>
-<b>Lion Browser</b><br>
-<button onclick="installApp('Lion Browser')">Установить</button>
-<div id="prog-Lion Browser" style='width:100%; height:6px; background:#ddd; border-radius:3px; margin-top:5px; display:none;'>
-<div style='height:100%; width:0%; background:#4caf50; border-radius:3px;' class='bar'></div>
-</div>
-</div>
-</div>
-</div>
-</div><div id="chatWindow" class="window">
-<div class="titlebar">ChatBot <button class="closeBtn" onclick="this.parentElement.parentElement.style.display='none'">✖</button></div>
-<div style="padding:10px;"><div id="chatLog" style="height:200px; overflow:auto; border:1px solid #ccc; padding:5px;"></div>
-<input id="chatInput" style="width:100%;" placeholder="Введите сообщение" onkeydown="if(event.key==='Enter')sendMsg()"></div>
-</div>
-</div><script>
-function login(){if(document.getElementById('login').value==='Levc920' && document.getElementById('password').value==='2584201725Levc'){document.getElementById('loginScreen').style.display='none'; document.getElementById('desktop').style.display='block';} else alert('Неверный пароль');}
-function toggleStart(){ let m=document.getElementById('startMenu'); m.style.display = m.style.display==='block' ? 'none':'block'; }
-function openSettings(){ document.getElementById('settingsWindow').style.display='flex'; }
-function openChat(){ document.getElementById('chatWindow').style.display='flex'; }
-function openWallpaperSettings(){ document.getElementById('wallpaperSettings').style.display='block'; document.getElementById('startSettings').style.display='none'; }
-function openStartSettings(){ document.getElementById('wallpaperSettings').style.display='none'; document.getElementById('startSettings').style.display='block'; }
-function applyWallpaper(){ let url=document.getElementById('wallSelect').value; document.getElementById('desktop').style.backgroundImage=`url(${url})`; }
-function updateStartPos(){ let pos=document.getElementById('startPos').value; let bar=document.getElementById('taskbar'); bar.style.justifyContent = pos==='center' ? 'center' : 'flex-start'; }
-function sendMsg(){ let log=document.getElementById('chatLog'); let msg=document.getElementById('chatInput').value; log.innerHTML += `<div><b>Вы:</b> ${msg}</div>`; let reply=msg.toLowerCase().includes('ос')?'Lion OS — это оптимизированная современная веб-операционная система.':'Я вас понял!'; log.innerHTML += `<div><b>Bot:</b> ${reply}</div>`; document.getElementById('chatInput').value=''; }
-function openStore(){ document.getElementById('storeWindow').style.display='flex'; }
-function installApp(name){ let box=document.getElementById('prog-'+name); let bar=box.querySelector('.bar'); box.style.display='block'; let p=0; let timer=setInterval(()=>{p+=5; bar.style.width=p+'%'; if(p>=100){ clearInterval(timer); alert(name+' установлено!'); addDesktopIcon(name); } },200); }
-function addDesktopIcon(name){ const icons=document.getElementById('desktopIcons'); let div=document.createElement('div'); div.className='desktopIcon'; div.innerHTML=`<img src='https://img.icons8.com/ios-filled/50/000000/application-window.png'><br>${name}`;
- div.onclick=function(){ if(name==='Lion Browser') alert('Запуск '+name); else alert(name+' запущено!'); };
- icons.appendChild(div); }
-const windows=document.querySelectorAll('.window'); windows.forEach(w=>{ const bar=w.querySelector('.titlebar'); let offsetX,offsetY,isDown=false; bar.onmousedown=e=>{isDown=true;offsetX=e.clientX-w.offsetLeft;offsetY=e.clientY-w.offsetTop;}; document.onmouseup=()=>isDown=false; document.onmousemove=e=>{if(!isDown)return; w.style.left=e.clientX-offsetX+'px'; w.style.top=e.clientY-offsetY+'px';}; });
-</script></body>
+
+<!-- audio -->
+<audio id="snd-boot" src="https://upload.wikimedia.org/wikipedia/commons/1/15/Windows_11_Startup_Sound.ogg" preload="auto"></audio>
+<audio id="snd-open" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+<audio id="snd-close" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+<audio id="snd-click" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg" preload="auto"></audio>
+<audio id="snd-notify" src="https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg" preload="auto"></audio>
+
+<script>
+/* ----------------- State ----------------- */
+const CONFIG = {
+  login: 'Levc920',
+  pass: '2584201725Levc'
+};
+const STATE = {
+  nextWinId: 1,
+  openWindows: {}, // id -> element
+  desktopIcons: [], // {name,icon,app}
+  pinned: []
+};
+
+/* -------------- Utils & audio -------------- */
+function play(id){ try{ const a=document.getElementById(id); a.currentTime=0; a.play(); }catch(e){} }
+function notify(text, timeout=3500){ // a notification panel
+  const cont = document.getElementById('notifications');
+  const el = document.createElement('div');
+  el.className='notification';
+  el.textContent = text;
+  cont.appendChild(el);
+  // animate in
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateY(0)'; });
+  play('snd-notify');
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(6px)'; setTimeout(()=>el.remove(),220); }, timeout);
+}
+
+/* ------------- Splash & Login -------------- */
+window.addEventListener('load', ()=>{
+  const fill = document.getElementById('progressFill'); let w=0;
+  const iv = setInterval(()=>{ w+=1; fill.style.width = w + '%'; if(w>=100){ clearInterval(iv); document.getElementById('splash').style.display='none'; showLogin(); } }, 100);
+  // load saved
+  applySavedSettings();
+});
+
+function showLogin(){
+  document.getElementById('login').style.display='flex';
+  document.getElementById('loginUser').focus();
+}
+
+/* ---------- Lock screen (Win+L or Ctrl+L) ---------- */
+function lockScreen(){
+  document.getElementById('lockScreen').style.display='flex';
+  document.getElementById('unlockInput').value='';
+  notify('Экран заблокирован');
+}
+function unlockScreen(){
+  const v = document.getElementById('unlockInput').value;
+  if(v === CONFIG.pass){
+    document.getElementById('lockScreen').style.display='none';
+    notify('Экран разблокирован');
+  } else {
+    notify('Неверный пароль',2000);
+  }
+}
+document.addEventListener('keydown', e=>{
+  if((e.key === 'l' || e.key === 'L') && (e.ctrlKey || e.metaKey)){
+    lockScreen();
+  }
+  if(e.key === 'Escape'){
+    // close start menu or focused windows
+    document.getElementById('startMenu').classList.remove('show');
+  }
+});
+
+/* unlock input enter */
+document.getElementById('unlockInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') unlockScreen();
+});
+
+/* ----------- Login handling ---------- */
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('loginDemo').addEventListener('click', ()=>{
+  document.getElementById('loginUser').value = CONFIG.login;
+  document.getElementById('loginPass').value = CONFIG.pass;
+  doLogin();
+});
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if(u === CONFIG.login && p === CONFIG.pass){
+    document.getElementById('login').style.display='none';
+    document.getElementById('desktop').style.display='block';
+    play('snd-boot');
+    notify('Добро пожаловать, ' + u + '!');
+    // animate icons
+    animateIconsIn();
+  } else {
+    notify('Неверный логин или пароль',2500);
+    play('snd-close');
+  }
+}
+
+/* ---------- Start menu ---------- */
+const startBtn = document.getElementById('startBtn');
+const startMenu = document.getElementById('startMenu');
+startBtn.addEventListener('click', ()=>{
+  play('snd-click');
+  startMenu.classList.toggle('show');
+});
+
+/* ---------- Desktop icons drag & drop & single-click open ---------- */
+const desktopIconsEl = document.getElementById('desktopIcons');
+// allow drop locations: we will allow dragging within desktopIcons container
+let dragElem = null, dragOffsetX=0, dragOffsetY=0;
+function addDesktopIcon(name, iconUrl, app){
+  const d = document.createElement('div');
+  d.className = 'desktopIcon';
+  d.draggable = true;
+  d.innerHTML = `<img src="${iconUrl||'https://img.icons8.com/ios-filled/50/ffffff/application-window.png'}" alt="${name}"><div style="font-size:12px;color:var(--muted)">${name}</div>`;
+  d.dataset.app = app || name;
+  // single-click: open app
+  d.addEventListener('click', ()=>{ openApp(d.dataset.app); });
+  // drag events: reposition within container (simple)
+  d.addEventListener('dragstart', (e)=>{ dragElem = d; e.dataTransfer.setData('text/plain','drag'); dragOffsetX = e.offsetX; dragOffsetY = e.offsetY; setTimeout(()=>d.style.opacity='0.4',50); });
+  d.addEventListener('dragend', ()=>{ if(d) d.style.opacity='1'; dragElem=null; });
+  desktopIconsEl.appendChild(d);
+  STATE.desktopIcons.push({name,icon:iconUrl,app});
+  saveDesktopIcons();
+}
+function saveDesktopIcons(){ localStorage.setItem('lion_icons', JSON.stringify(STATE.desktopIcons)); }
+function loadDesktopIcons(){
+  const v = localStorage.getItem('lion_icons');
+  if(!v) return;
+  try{
+    const arr = JSON.parse(v);
+    arr.forEach(it => addDesktopIcon(it.name, it.icon, it.app));
+  }catch(e){}
+}
+function animateIconsIn(){ const els = document.querySelectorAll('.desktopIcon'); els.forEach((el,i)=>{ el.style.opacity=0; el.style.transform='translateY(8px)'; setTimeout(()=>{ el.style.transition='all .25s cubic-bezier(.2,.9,.3,1)'; el.style.opacity=1; el.style.transform='translateY(0)'; }, i*70); }); }
+
+/* make desktop container a drop target to reorder */
+desktopIconsEl.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+desktopIconsEl.addEventListener('drop', (e)=>{
+  e.preventDefault();
+  if(!dragElem) return;
+  // put at end for simplicity
+  desktopIconsEl.appendChild(dragElem);
+  dragElem.style.opacity = '1';
+  dragElem = null;
+  // update STATE order
+  // simple reserialize DOM order to STATE
+  STATE.desktopIcons = Array.from(desktopIconsEl.children).map(ch=>{
+    return { name: ch.textContent.trim(), icon: ch.querySelector('img')?.src, app: ch.dataset.app };
+  });
+  saveDesktopIcons();
+});
+
+/* ---------- Widgets: clock & weather ---------- */
+function updateClock(){ const now = new Date(); const hh = String(now.getHours()).padStart(2,'0'); const mm = String(now.getMinutes()).padStart(2,'0'); document.getElementById('clockTime').textContent = `${hh}:${mm}`; document.getElementById('clockDate').textContent = now.toLocaleDateString(); }
+setInterval(updateClock,1000); updateClock();
+/* weather demo (placeholder) */
+document.getElementById('weatherText').textContent = 'Солнечно, +22°C (демо)';
+
+/* ---------- Window system: create / minimize / maximize / close ---------- */
+const windowsContainer = {}; // id -> {el, state}
+function createWindow(title, options={}){
+  const id = 'win' + (STATE.nextWinId++);
+  const el = document.createElement('div'); el.className='window'; el.id = id;
+  // header
+  const header = document.createElement('div'); header.className='win-header';
+  const titleEl = document.createElement('div'); titleEl.textContent = title;
+  const controls = document.createElement('div'); controls.className='win-controls';
+  // minimize
+  const btnMin = document.createElement('button'); btnMin.textContent='🗕'; btnMin.title='Свернуть';
+  btnMin.onclick = (e)=>{ e.stopPropagation(); minimizeWindow(id); };
+  // maximize
+  const btnMax = document.createElement('button'); btnMax.textContent='🗖'; btnMax.title='Развернуть';
+  btnMax.onclick = (e)=>{ e.stopPropagation(); toggleMaximize(id); };
+  // close
+  const btnClose = document.createElement('button'); btnClose.textContent='✖'; btnClose.title='Закрыть';
+  btnClose.onclick = (e)=>{ e.stopPropagation(); closeWindow(id); };
+  controls.appendChild(btnMin); controls.appendChild(btnMax); controls.appendChild(btnClose);
+  header.appendChild(titleEl); header.appendChild(controls);
+  // body
+  const body = document.createElement('div'); body.className='win-body'; body.innerHTML = options.content || '<div>Пусто</div>';
+  el.appendChild(header); el.appendChild(body);
+  document.body.appendChild(el);
+  windowsContainer[id] = { el, minimized:false, maximized:false, prevRect:null };
+  // drag header
+  makeDraggable(el, header);
+  // focus on click
+  el.addEventListener('mousedown', ()=>{ bringToFront(el); });
+  bringToFront(el);
+  play('snd-open');
+  return id;
+}
+function bringToFront(el){
+  // set zIndex high
+  document.querySelectorAll('.window').forEach(w=>w.style.zIndex=100);
+  el.style.zIndex = 200;
+}
+function closeWindow(id){ const w = windowsContainer[id]; if(!w) return; w.el.remove(); delete windowsContainer[id]; play('snd-close'); notifyCloseUI(id); }
+function minimizeWindow(id){
+  const w = windowsContainer[id]; if(!w) return;
+  w.el.style.display = 'none';
+  w.minimized = true;
+  addMinimizedButton(id, w.el);
+}
+function addMinimizedButton(id, el){
+  const bar = document.getElementById('minimizedBar');
+  const btn = document.createElement('button'); btn.textContent = el.querySelector('.win-header > div').textContent; btn.style.padding='6px 8px'; btn.style.borderRadius='6px';
+  btn.onclick = ()=>{ restoreWindow(id); btn.remove(); };
+  bar.appendChild(btn);
+}
+function restoreWindow(id){
+  const w = windowsContainer[id]; if(!w) return;
+  w.el.style.display = 'flex';
+  w.minimized = false;
+  bringToFront(w.el);
+  play('snd-open');
+}
+function toggleMaximize(id){
+  const w = windowsContainer[id]; if(!w) return;
+  if(!w.maximized){
+    // store prev rect
+    w.prevRect = { left: w.el.offsetLeft, top: w.el.offsetTop, width: w.el.offsetWidth, height: w.el.offsetHeight };
+    w.el.style.left = '6px'; w.el.style.top = '6px'; w.el.style.width = (window.innerWidth - 12) + 'px'; w.el.style.height = (window.innerHeight - 100) + 'px';
+    w.maximized = true;
+  } else {
+    const r = w.prevRect;
+    if(r){ w.el.style.left = r.left + 'px'; w.el.style.top = r.top + 'px'; w.el.style.width = r.width + 'px'; w.el.style.height = r.height + 'px'; }
+    w.maximized = false;
+  }
+}
+
+/* draggable helper */
+function makeDraggable(winEl, handle){
+  let dx=0, dy=0, dragging=false;
+  handle.addEventListener('mousedown', e=>{
+    dragging = true; dx = e.clientX - winEl.offsetLeft; dy = e.clientY - winEl.offsetTop;
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.userSelect='auto'; });
+  document.addEventListener('mousemove', e=>{ if(!dragging) return; winEl.style.left = (e.clientX - dx) + 'px'; winEl.style.top = (e.clientY - dy) + 'px'; });
+}
+
+/* ---------- Built-in apps: notepad, browser, explorer, store, terminal, settings, chat ---------- */
+function openApp(app){
+  // open a window with app content
+  switch(app){
+    case 'notepad':
+      createWindow('Блокнот', { content: `<textarea style="width:100%;height:420px;font-family:monospace;padding:8px;border-radius:6px;border:1px solid #ddd"></textarea>`});
+      break;
+    case 'browser':
+      const idB = createWindow('Lion Browser', { content: `<div style="display:flex;gap:8px;align-items:center"><button onclick="frameBack(this)">◀</button><button onclick="frameForward(this)">▶</button><input id="url_input_${STATE.nextWinId}" placeholder="URL или поиск" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ccc"/><button onclick="loadFrame(${STATE.nextWinId})">Открыть</button></div><iframe id="frame_${STATE.nextWinId}" style="width:100%;height:420px;margin-top:10px;border:1px solid #ccc;border-radius:6px"></iframe>`});
+      // set google default after brief
+      setTimeout(()=>document.getElementById('frame_' + (STATE.nextWinId -1)).src = 'https://www.google.com', 50);
+      break;
+    case 'explorer':
+      createWindow('Проводник', { content: explorerHtml() });
+      break;
+    case 'store':
+      createWindow('Магазин', { content: storeHtml() });
+      break;
+    case 'terminal':
+      createWindow('Терминал', { content: terminalHtml() });
+      break;
+    case 'settings':
+      createWindow('Настройки', { content: settingsHtml() });
+      break;
+    case 'chat':
+      createWindow('ChatBot', { content: chatHtml() });
+      break;
+    default:
+      createWindow(app, { content: `<div>Запуск ${app}</div>`});
+  }
+}
+
+/* ---------- Browser helpers ---------- */
+function loadFrame(winNum){
+  const input = document.getElementById('url_input_' + winNum);
+  const frame = document.getElementById('frame_' + winNum);
+  if(!input || !frame) return;
+  let url = input.value.trim();
+  if(!url) return;
+  if(!/^https?:\/\//i.test(url)) url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+  frame.src = url;
+}
+function frameBack(btn){
+  try{ const frame = btn.closest('.win-body').querySelector('iframe'); frame.contentWindow.history.back(); }catch(e){}
+}
+function frameForward(btn){
+  try{ const frame = btn.closest('.win-body').querySelector('iframe'); frame.contentWindow.history.forward(); }catch(e){}
+}
+
+/* ---------- Explorer (simple virtual FS) ---------- */
+let VFS = { 'root': { type:'dir', children: { 'Документы': { type:'dir', children:{} }, 'Изображения': { type:'dir', children:{} }, 'Загрузки': { type:'dir', children:{} } } } };
+function explorerHtml(){
+  return `<div style="display:flex;gap:10px">
+    <div style="width:220px;border-right:1px solid #eee;padding:8px">
+      <div><b>Папки</b></div>
+      <ul id="vfsFolders" style="list-style:none;padding:6px;margin:6px 0"></ul>
+      <div style="margin-top:10px">
+        <input id="newFolderName" placeholder="Новая папка" style="width:100%;padding:6px"/>
+        <button onclick="createFolder()">Создать папку</button>
+      </div>
+    </div>
+    <div style="flex:1;padding:8px">
+      <div id="vfsContent">Выберите папку</div>
+    </div>
+  </div>`;
+}
+function refreshVFSUI(){
+  const ul = document.getElementById('vfsFolders');
+  if(!ul) return;
+  ul.innerHTML = '';
+  Object.keys(VFS.root.children).forEach(k=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="#" onclick="openVFS('${k}');return false">${k}</a>`;
+    ul.appendChild(li);
+  });
+}
+function openVFS(name){
+  const content = document.getElementById('vfsContent');
+  if(!content) return;
+  const node = VFS.root.children[name];
+  if(!node) return;
+  let html = `<h3>${name}</h3>`;
+  const keys = Object.keys(node.children);
+  if(keys.length === 0) html += `<div>Папка пуста</div>`;
+  else html += `<ul>` + keys.map(k=>`<li>${k} <button onclick="deleteVFS('${name}','${k}')">Удалить</button></li>`).join('') + `</ul>`;
+  content.innerHTML = html;
+}
+function createFolder(){
+  const name = document.getElementById('newFolderName').value.trim();
+  if(!name) return notify('Введите имя папки');
+  if(VFS.root.children[name]) return notify('Папка уже существует');
+  VFS.root.children[name] = { type:'dir', children:{} };
+  document.getElementById('newFolderName').value='';
+  refreshVFSUI();
+  notify('Папка создана: ' + name);
+}
+function deleteVFS(parent, child){
+  if(!VFS.root.children[parent] || !VFS.root.children[parent].children[child]) return;
+  delete VFS.root.children[parent].children[child];
+  openVFS(parent);
+  notify('Удалено: ' + child);
+}
+
+/* ---------- Store: install apps with progress and add to desktop ---------- */
+function storeHtml(){
+  return `<div>
+    <h3>Магазин</h3>
+    <div style="margin-top:10px">
+      <div style="margin-bottom:12px">
+        <b>Lion Browser</b><br/>
+        <button onclick="startInstall('Lion Browser')">Установить</button>
+        <div id="prog-Lion Browser" style="height:8px;background:#ddd;border-radius:6px;margin-top:6px;display:none"><div class="bar" style="height:8px;width:0;background:#4caf50;border-radius:6px"></div></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <b>Terminal Plus</b><br/>
+        <button onclick="startInstall('Terminal Plus')">Установить</button>
+        <div id="prog-Terminal Plus" style="height:8px;background:#ddd;border-radius:6px;margin-top:6px;display:none"><div class="bar" style="height:8px;width:0;background:#4caf50;border-radius:6px"></div></div>
+      </div>
+    </div>
+  </div>`;
+}
+function startInstall(name){
+  const wrap = document.getElementById('prog-' + name);
+  if(!wrap) return;
+  const bar = wrap.querySelector('.bar');
+  wrap.style.display='block';
+  let p=0;
+  const t = setInterval(()=>{
+    p += 8;
+    bar.style.width = p + '%';
+    if(p>=100){ clearInterval(t); wrap.style.display='none'; notify(name + ' установлен'); play('snd-notify'); // add desktop icon
+      const iconUrl = name.includes('Browser') ? 'https://cdn-icons-png.flaticon.com/512/482/482631.png' : 'https://img.icons8.com/ios-filled/50/ffffff/console.png';
+      addDesktopIcon(name, iconUrl, name);
+    }
+  }, 220);
+}
+
+/* ---------- Terminal HTML ---------- */
+function terminalHtml(){ return `<div style="font-family:monospace"><div id="termOut" style="height:240px;overflow:auto;padding:8px;background:#000;color:#0f0;border-radius:6px">Lion Terminal\n&gt; </div><input id="termIn" style="width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid #ccc" placeholder="Введите команду" onkeydown="if(event.key==='Enter') runCmd(this)" /></div>`; }
+function runCmd(input){
+  const w = input.closest('.window');
+  const out = w.querySelector('#termOut');
+  const cmd = input.value.trim(); if(!cmd) return;
+  out.innerHTML += '\n> ' + cmd;
+  if(cmd === 'help') out.innerHTML += '\nДоступные: help, echo, clear';
+  else if(cmd.startsWith('echo ')) out.innerHTML += '\n' + cmd.slice(5);
+  else if(cmd === 'clear') out.innerHTML = '';
+  else out.innerHTML += '\nКоманда не найдена: ' + cmd;
+  input.value=''; out.scrollTop = out.scrollHeight;
+}
+
+/* ---------- Settings Html ---------- */
+function settingsHtml(){
+  return `<div>
+    <h3>Обои</h3>
+    <input id="wallInput" placeholder="Ссылка на картинку" style="width:100%;padding:8px"/><div style="display:flex;gap:8px;margin-top:8px"><button onclick="applyWallpaper()">Применить</button><button onclick="resetWallpaper()">Сбросить</button></div>
+    <hr/>
+    <h3>Пуск</h3>
+    <label><input type="radio" name="startpos" value="center" onchange="setStartPos(this.value)"/> По центру</label><br/>
+    <label><input type="radio" name="startpos" value="left" onchange="setStartPos(this.value)"/> Слева</label>
+    <hr/>
+    <h3>Тема</h3>
+    <label><input type="radio" name="theme" value="dark" onchange="setTheme(this.value)"/> Тёмная</label><br/>
+    <label><input type="radio" name="theme" value="light" onchange="setTheme(this.value)"/> Светлая</label>
+  </div>`;
+}
+function wireSettingsUI(winEl){
+  // set current values
+  const theme = localStorage.getItem('lion_theme') || 'dark';
+  const pos = localStorage.getItem('lion_startPos') || 'center';
+  const win = winEl;
+  // set radios if exist
+  setTimeout(()=>{ try{ document.querySelectorAll('input[name="theme"]').forEach(r=> r.checked = (r.value === theme)); document.querySelectorAll('input[name="startpos"]').forEach(r=> r.checked = (r.value === pos)); }catch(e){} },20);
+}
+
+/* ---------- Chat Html ---------- */
+function chatHtml(){ return `<div><b>ChatBot</b><div style="margin-top:8px"><textarea id="chatIn" style="width:100%;height:120px"></textarea><div style="display:flex;gap:8px;margin-top:6px"><button onclick="sendChat(this)">Отправить</button></div><div id="chatOut" style="background:#fafafa;height:180px;margin-top:10px;overflow:auto;padding:8px;border-radius:6px"></div></div></div>`; }
+function sendChat(btn){
+  const w = btn.closest('.window');
+  const inpt = w.querySelector('#chatIn'); const out = w.querySelector('#chatOut');
+  const msg = inpt.value.trim(); if(!msg) return;
+  out.innerHTML += `<div><b>Вы:</b> ${escapeHtml(msg)}</div>`;
+  inpt.value='';
+  // built-in quick response
+  if(msg.toLowerCase().includes('ос')) out.innerHTML += `<div><b>Bot:</b> Lion OS — оптимизированная веб-ОС.</div>`;
+  else out.innerHTML += `<div><b>Bot:</b> Демо-ответ: ${escapeHtml(msg)}</div>`;
+  out.scrollTop = out.scrollHeight;
+}
+
+/* ---------- Helpers: wallpaper, theme, start pos ---------- */
+function applyWallpaper(){
+  const v = document.getElementById('wallInput')?.value || '';
+  if(!v) return notify('Вставьте ссылку');
+  document.getElementById('desktop').style.backgroundImage = `url(${v})`;
+  document.getElementById('desktop').style.backgroundSize = 'cover';
+  localStorage.setItem('lion_wallpaper', v);
+  notify('Обои применены');
+}
+function resetWallpaper(){ document.getElementById('desktop').style.backgroundImage=''; localStorage.removeItem('lion_wallpaper'); notify('Обои сброшены'); }
+function setTheme(t){ if(t === 'light') document.body.classList.add('light'); else document.body.classList.remove('light'); localStorage.setItem('lion_theme', t); notify('Тема: ' + t); }
+function setStartPos(pos){ const tb = document.getElementById('taskbar'); if(pos === 'left') tb.style.justifyContent = 'flex-start'; else tb.style.justifyContent='center'; localStorage.setItem('lion_startPos', pos); notify('Положение Пуск: ' + pos); }
+
+/* ---------- Save/Load settings ---------- */
+function applySavedSettings(){
+  const wp = localStorage.getItem('lion_wallpaper'); if(wp){ document.getElementById('desktop').style.backgroundImage = `url(${wp})`; document.getElementById('desktop').style.backgroundSize='cover'; }
+  const theme = localStorage.getItem('lion_theme') || 'dark'; if(theme === 'light') document.body.classList.add('light');
+  const pos = localStorage.getItem('lion_startPos') || 'center'; setStartPos(pos);
+  // load icons
+  loadDesktopIcons();
+  // refresh explorer UI if open
+  setTimeout(()=>{ refreshVFSUI(); }, 200);
+}
+
+/* ---------- Escape html helper ---------- */
+function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* ---------- Save/load desktop icons ---------- */
+function loadDesktopIcons(){
+  const v = localStorage.getItem('lion_icons'); if(!v) return;
+  try{ const arr = JSON.parse(v); arr.forEach(it => addDesktopIcon(it.name, it.icon, it.app)); }catch(e){}
+}
+
+/* ---------- Notify close UI (optional) ---------- */
+function notifyCloseUI(id){
+  // remove minimized button if exists — handled on close
+  const bar = document.getElementById('minimizedBar');
+  if(!bar) return;
+  Array.from(bar.children).forEach(btn=>{ if(btn.textContent.includes(id)) btn.remove(); });
+}
+
+/* ---------- Init: pin default apps ---------- */
+function pinAppSimple(name, icon){
+  const pb = document.getElementById('pinnedApps');
+  const btn = document.createElement('button'); btn.className='pinned'; btn.style.padding='8px'; btn.style.borderRadius='8px'; btn.style.background='transparent'; btn.style.border='none'; btn.title=name;
+  btn.innerHTML = `<img src="${icon}" style="width:22px;height:22px">`;
+  btn.onclick = ()=>openApp(name.toLowerCase());
+  pb.appendChild(btn);
+  STATE.pinned.push(name);
+}
+
+/* ---------- Expose some functions globally used in inline html ---------- */
+window.openApp = openApp;
+window.applyWallpaper = applyWallpaper;
+window.resetWallpaper = resetWallpaper;
+window.setTheme = setTheme;
+window.setStartPos = setStartPos;
+window.startInstall = startInstall; // used by storeHtml
+window.addDesktopIcon = addDesktopIcon;
+window.loadFrame = loadFrame;
+window.frameBack = frameBack;
+window.frameForward = frameForward;
+
+/* ---------- After load: add some default icons and pins ---------- */
+setTimeout(()=>{ // small delay so DOM ready
+  // default desktop icons
+  if(!localStorage.getItem('lion_icons')){ addDesktopIcon('Lion Browser','https://cdn-icons-png.flaticon.com/512/482/482631.png','browser'); addDesktopIcon('ChatBot','https://cdn-icons-png.flaticon.com/512/4712/4712021.png','chat'); }
+  // pin
+  pinAppSimple('Browser','https://cdn-icons-png.flaticon.com/512/482/482631.png');
+  pinAppSimple('Chat','https://cdn-icons-png.flaticon.com/512/4712/4712021.png');
+}, 400);
+
+/* ---------- Accessibility / keyboard ---------- */
+// allow Enter on login
+document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+</script>
+</body>
 </html>
